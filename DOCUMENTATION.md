@@ -177,12 +177,19 @@ python scripts/merge_chapters.py
 #### 2. 生成电子书
 
 ```bash
+# 使用默认配置 (Calibre 引擎)
 python scripts/build_ebook.py
+
+# 使用 Pandoc 引擎生成 PDF (需要安装 XeLaTeX)
+python scripts/build_ebook.py --pdf-engine=pandoc
+
+# 自定义 Pandoc 参数
+python scripts/build_ebook.py --pdf-engine=pandoc --pandoc-args="--toc-depth=2 -V fontsize=12pt"
 ```
 
 这将生成：
 - `Convict_Conditioning_Revised_Complete.epub`
-- `Convict_Conditioning_Revised_Complete.pdf` (如果安装了 Calibre)
+- `Convict_Conditioning_Revised_Complete.pdf`
 
 ### 脚本说明
 
@@ -202,12 +209,24 @@ python scripts/merge_chapters.py
 **功能**：将合并后的 Markdown 文件转换为 EPUB 和 PDF 格式
 
 **依赖**：
-- Pandoc (必需，用于生成 EPUB)
-- Calibre (可选，用于生成 PDF)
+- Pandoc (必需，用于生成 EPUB 和 PDF)
+- Calibre (可选，默认 PDF 引擎)
+- XeLaTeX (可选，Pandoc PDF 引擎需要)
 
-**使用方法**：
+**参数说明**：
+- `--pdf-engine`: PDF 生成引擎，可选 `calibre` (默认) 或 `pandoc`
+- `--paper-size`: 纸张大小，默认 `a4`
+- `--margin-*`: 边距设置 (top, bottom, left, right)，默认 `72`pt
+- `--font-*`: 字体设置 (serif, sans, mono)
+- `--pandoc-args`: 传递给 Pandoc 的自定义参数
+
+**使用示例**：
 ```bash
+# 默认构建
 python scripts/build_ebook.py
+
+# 使用 Pandoc 引擎并自定义参数
+python scripts/build_ebook.py --pdf-engine=pandoc --pandoc-args="-V geometry:margin=1in --number-sections"
 ```
 
 ## 发布流程

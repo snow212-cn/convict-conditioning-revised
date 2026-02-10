@@ -8,6 +8,19 @@ on:
     paths:
       - 'revised_book_v2/**/*.md'
   workflow_dispatch:
+    inputs:
+      pdf_engine:
+        description: 'PDF生成引擎'
+        required: true
+        default: 'calibre'
+        type: choice
+        options:
+          - calibre
+          - pandoc
+      pandoc_args:
+        description: 'Pandoc自定义参数 (例如: --toc-depth=2)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -33,10 +46,23 @@ jobs:
           sudo apt-get install -y pandoc
           pandoc --version
       
+      - name: 安装中文字体
+        run: |
+          sudo apt-get install -y fonts-noto-cjk fonts-noto-cjk-extra
+          fc-cache -fv
+          echo "✅ 中文字体安装完成"
+          fc-list :lang=zh | head -5
+      
       - name: 安装Calibre
+        if: github.event.inputs.pdf_engine != 'pandoc'
         run: |
           sudo apt-get install -y calibre
           ebook-convert --version
+
+      - name: 安装XeLaTeX (用于Pandoc PDF)
+        if: github.event.inputs.pdf_engine == 'pandoc'
+        run: |
+          sudo apt-get install -y texlive-xetex texlive-fonts-recommended texlive-plain-generic
       
       - name: 合并章节文件
         run: |
@@ -46,7 +72,7 @@ jobs:
       
       - name: 生成电子书
         run: |
-          python scripts/build_ebook.py
+          python scripts/build_ebook.py --pdf-engine=${{ github.event.inputs.pdf_engine || 'calibre' }} --pandoc-args="${{ github.event.inputs.pandoc_args }}"
           echo "✅ 电子书生成完成"
           ls -lh Convict_Conditioning_Revised_Complete.*
       
@@ -55,7 +81,7 @@ jobs:
         run: |
           echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
           echo "datetime=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
-          echo "version=v$(date +'%Y.%m.%d')" >> $GITHUB_OUTPUT
+          echo "version=v$(date +'%Y.%m.%d')_${{ github.run_number }}" >> $GITHUB_OUTPUT
       
       - name: 配置Git
         run: |
@@ -87,6 +113,7 @@ jobs:
           body: |
             ## 📚 囚徒健身 - 科学修订版
             
+            **发布版本**: ${{ steps.date.outputs.version }}
             **发布日期**: ${{ steps.date.outputs.date }}
             
             ### 📥 下载
@@ -118,7 +145,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./Convict_Conditioning_Revised_Complete.epub
-          asset_name: 囚徒健身修订版_${{ steps.date.outputs.date }}.epub
+          asset_name: Convict_Conditioning_Revised_${{ steps.date.outputs.version }}.epub
           asset_content_type: application/epub+zip
       
       - name: 上传PDF到Release
@@ -128,7 +155,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./Convict_Conditioning_Revised_Complete.pdf
-          asset_name: 囚徒健身修订版_${{ steps.date.outputs.date }}.pdf
+          asset_name: Convict_Conditioning_Revised_${{ steps.date.outputs.version }}.pdf
           asset_content_type: application/pdf
         continue-on-error: true
       
@@ -139,7 +166,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./Convict_Conditioning_Revised_Complete.md
-          asset_name: 囚徒健身修订版_${{ steps.date.outputs.date }}.md
+          asset_name: Convict_Conditioning_Revised_${{ steps.date.outputs.version }}.md
           asset_content_type: text/markdown
       
       - name: 构建完成通知

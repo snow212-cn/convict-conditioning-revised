@@ -56,7 +56,7 @@
 
 - Python 3.8+
 - Pandoc 2.0+
-- Calibre (用于 EPUB 转 PDF)
+- Calibre (默认 PDF 引擎) 或 XeLaTeX (Pandoc PDF 引擎)
 
 运行构建脚本：
 
@@ -64,11 +64,11 @@
 # 合并所有章节
 python scripts/merge_chapters.py
 
-# 生成 EPUB
-python scripts/build_epub.py
+# 生成 EPUB 和 PDF
+python scripts/build_ebook.py
 
-# 生成 PDF（可选）
-python scripts/build_pdf.py
+# 使用 Pandoc 引擎生成 PDF (需要 XeLaTeX)
+python scripts/build_ebook.py --pdf-engine=pandoc
 ```
 
 ## 贡献指南
