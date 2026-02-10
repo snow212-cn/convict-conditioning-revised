@@ -1,0 +1,152 @@
+name: 构建电子书并发布
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'revised_book_v2/**/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 设置Python环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: 安装Pandoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc
+          pandoc --version
+      
+      - name: 安装Calibre
+        run: |
+          sudo apt-get install -y calibre
+          ebook-convert --version
+      
+      - name: 合并章节文件
+        run: |
+          python scripts/merge_chapters.py
+          echo "✅ 章节合并完成"
+          ls -lh Convict_Conditioning_Revised_Complete.md
+      
+      - name: 生成电子书
+        run: |
+          python scripts/build_ebook.py
+          echo "✅ 电子书生成完成"
+          ls -lh Convict_Conditioning_Revised_Complete.*
+      
+      - name: 获取当前日期和时间
+        id: date
+        run: |
+          echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+          echo "datetime=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+          echo "version=v$(date +'%Y.%m.%d')" >> $GITHUB_OUTPUT
+      
+      - name: 配置Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+      
+      - name: 提交生成的文件
+        run: |
+          git add Convict_Conditioning_Revised_Complete.md
+          git add Convict_Conditioning_Revised_Complete.epub
+          git add Convict_Conditioning_Revised_Complete.pdf || true
+          
+          if git diff --staged --quiet; then
+            echo "没有文件变更，跳过提交"
+          else
+            git commit -m "🤖 自动构建: 更新电子书文件 (${{ steps.date.outputs.date }})"
+            git push
+            echo "✅ 文件已提交并推送"
+          fi
+      
+      - name: 创建Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.date.outputs.version }}
+          release_name: 囚徒健身修订版 ${{ steps.date.outputs.version }}
+          body: |
+            ## 📚 囚徒健身 - 科学修订版
+            
+            **发布日期**: ${{ steps.date.outputs.date }}
+            
+            ### 📥 下载
+            
+            - **EPUB格式**: 适用于大多数电子书阅读器
+            - **PDF格式**: 适用于打印和电脑阅读
+            - **Markdown格式**: 适用于在线阅读和编辑
+            
+            ### 📝 更新说明
+            
+            本版本基于最新的章节修订自动构建生成。
+            
+            ### ⚠️ 免责声明
+            
+            本修订版本仅供学习交流使用，不得用于商业用途。
+            训练前请咨询专业医疗人员或认证教练。
+            
+            ---
+            
+            **构建时间**: ${{ steps.date.outputs.datetime }}
+            **构建编号**: ${{ github.run_number }}
+          draft: false
+          prerelease: false
+      
+      - name: 上传EPUB到Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Convict_Conditioning_Revised_Complete.epub
+          asset_name: 囚徒健身修订版_${{ steps.date.outputs.date }}.epub
+          asset_content_type: application/epub+zip
+      
+      - name: 上传PDF到Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Convict_Conditioning_Revised_Complete.pdf
+          asset_name: 囚徒健身修订版_${{ steps.date.outputs.date }}.pdf
+          asset_content_type: application/pdf
+        continue-on-error: true
+      
+      - name: 上传Markdown到Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Convict_Conditioning_Revised_Complete.md
+          asset_name: 囚徒健身修订版_${{ steps.date.outputs.date }}.md
+          asset_content_type: text/markdown
+      
+      - name: 构建完成通知
+        run: |
+          echo "================================================"
+          echo "✅ 电子书构建和发布完成！"
+          echo "================================================"
+          echo "📦 Release版本: ${{ steps.date.outputs.version }}"
+          echo "🔗 Release链接: ${{ steps.create_release.outputs.html_url }}"
+          echo "================================================"
