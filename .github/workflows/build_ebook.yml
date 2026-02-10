@@ -62,7 +62,7 @@ jobs:
       - name: 安装XeLaTeX (用于Pandoc PDF)
         if: github.event.inputs.pdf_engine == 'pandoc'
         run: |
-          sudo apt-get install -y texlive-xetex texlive-fonts-recommended texlive-plain-generic
+          sudo apt-get install -y texlive-xetex texlive-fonts-recommended texlive-plain-generic texlive-lang-chinese
       
       - name: 合并章节文件
         run: |
@@ -92,12 +92,15 @@ jobs:
         run: |
           git add Convict_Conditioning_Revised_Complete.md
           git add Convict_Conditioning_Revised_Complete.epub
-          git add Convict_Conditioning_Revised_Complete.pdf || true
+          if [ -f "Convict_Conditioning_Revised_Complete.pdf" ]; then
+            git add Convict_Conditioning_Revised_Complete.pdf
+          fi
           
           if git diff --staged --quiet; then
             echo "没有文件变更，跳过提交"
           else
             git commit -m "🤖 自动构建: 更新电子书文件 (${{ steps.date.outputs.date }})"
+            git pull --rebase
             git push
             echo "✅ 文件已提交并推送"
           fi
