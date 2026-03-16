@@ -129,7 +129,7 @@ graph LR
 
 - Python 3.8+
 - Pandoc 2.0+
-- Calibre (可选，用于��成 PDF)
+- Calibre (可选，用于转成 PDF)
 
 ### 安装依赖
 
@@ -325,7 +325,7 @@ metadata = {
 4. 推送到分支：`git push origin feature/your-feature`
 5. 创建 Pull Request
 
-### 代���规范
+### 代码规范
 
 - Markdown 文件使用 UTF-8 编码
 - Python 代码遵循 PEP 8 规范

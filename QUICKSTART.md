@@ -110,7 +110,7 @@ ls -lh Convict_Conditioning_Revised_Complete.*
 
 ## ⚠️ 注意事项
 
-### 1. ��件编码
+### 1. 文件编码
 
 确保所有 Markdown 文件使用 UTF-8 编码，避免中文乱码。
 

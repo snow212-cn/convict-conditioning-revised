@@ -51,9 +51,12 @@ def build_epub(input_file: str, output_file: str, metadata: dict) -> bool:
     print(f"\n📚 生成EPUB: {output_file}")
     
     # 构建pandoc命令
+    # 说明：默认 Markdown 里“单个换行”是 soft break，转换为 EPUB(HTML) 会被当成空格。
+    # 增加 +hard_line_breaks 后，会把单个换行渲染为 <br/>，以保留原稿里的换行排版。
     cmd = [
         'pandoc',
         input_file,
+        '--from=markdown+hard_line_breaks',
         '-o', output_file,
         '--toc',  # 生成目录
         '--toc-depth=3',  # 目录深度
