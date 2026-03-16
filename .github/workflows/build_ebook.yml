@@ -41,29 +41,42 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: 安装Pandoc
+      # 说明：GitHub hosted runner 每次都是“干净机器”，apt 安装会很耗时。
+      # 使用 cache-apt-pkgs-action 后，后续运行会加速（第一次仍需要完整安装）。
+      - name: 缓存并安装基础依赖（Pandoc + 中文字体）
+        uses: awalsh128/cache-apt-pkgs-action@v1.4.3
+        with:
+          packages: pandoc fonts-noto-cjk fonts-noto-cjk-extra
+          version: 1.0
+
+      - name: 检查Pandoc版本
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pandoc
           pandoc --version
-      
-      - name: 安装中文字体
+
+      - name: 刷新字体缓存
         run: |
-          sudo apt-get install -y fonts-noto-cjk fonts-noto-cjk-extra
           fc-cache -fv
-          echo "✅ 中文字体安装完成"
+          echo "✅ 中文字体缓存刷新完成"
           fc-list :lang=zh | head -5
-      
-      - name: 安装Calibre
+
+      - name: 缓存并安装Calibre
+        if: github.event.inputs.pdf_engine != 'pandoc'
+        uses: awalsh128/cache-apt-pkgs-action@v1.4.3
+        with:
+          packages: calibre
+          version: 1.0
+
+      - name: 检查Calibre版本
         if: github.event.inputs.pdf_engine != 'pandoc'
         run: |
-          sudo apt-get install -y calibre
           ebook-convert --version
 
-      - name: 安装XeLaTeX (用于Pandoc PDF)
+      - name: 缓存并安装XeLaTeX (用于Pandoc PDF)
         if: github.event.inputs.pdf_engine == 'pandoc'
-        run: |
-          sudo apt-get install -y texlive-xetex texlive-fonts-recommended texlive-plain-generic texlive-lang-chinese
+        uses: awalsh128/cache-apt-pkgs-action@v1.4.3
+        with:
+          packages: texlive-xetex texlive-fonts-recommended texlive-plain-generic texlive-lang-chinese
+          version: 1.0
       
       - name: 合并章节文件
         run: |
