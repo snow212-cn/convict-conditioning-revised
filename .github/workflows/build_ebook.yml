@@ -7,6 +7,7 @@ on:
       - master
     paths:
       - 'revised_book_v2/**/*.md'
+      - '.github/workflows/build_ebook.yml'
   workflow_dispatch:
     inputs:
       pdf_engine:
@@ -83,27 +84,9 @@ jobs:
           echo "datetime=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
           echo "version=v$(date +'%Y.%m.%d')_${{ github.run_number }}" >> $GITHUB_OUTPUT
       
-      - name: 配置Git
+      - name: 跳过提交到仓库（产物不会推送到代码仓库）
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-      
-      - name: 提交生成的文件
-        run: |
-          git add Convict_Conditioning_Revised_Complete.md
-          git add Convict_Conditioning_Revised_Complete.epub
-          if [ -f "Convict_Conditioning_Revised_Complete.pdf" ]; then
-            git add Convict_Conditioning_Revised_Complete.pdf
-          fi
-          
-          if git diff --staged --quiet; then
-            echo "没有文件变更，跳过提交"
-          else
-            git commit -m "🤖 自动构建: 更新电子书文件 (${{ steps.date.outputs.date }})"
-            git pull --rebase
-            git push
-            echo "✅ 文件已提交并推送"
-          fi
+          echo "📦 电子书产物将作为 Release 附件上传，不会 commit/push 到仓库"
       
       - name: 创建Release
         id: create_release
