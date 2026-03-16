@@ -41,7 +41,6 @@ jobs:
         with:
           python-version: '3.11'
       
-      # 说明：GitHub hosted runner 每次都是“干净机器”，apt 安装会很耗时。
       # 使用 cache-apt-pkgs-action 后，后续运行会加速（第一次仍需要完整安装）。
       - name: 缓存并安装基础依赖（Pandoc + 中文字体）
         uses: awalsh128/cache-apt-pkgs-action@v1.4.3
@@ -86,7 +85,11 @@ jobs:
       
       - name: 生成电子书
         run: |
-          python scripts/build_ebook.py --pdf-engine=${{ github.event.inputs.pdf_engine || 'calibre' }} --pandoc-args="${{ github.event.inputs.pandoc_args }}"
+          # 默认使用 screen 预设：A5 + 较小边距 + 较大字号，适配手机阅读
+          python scripts/build_ebook.py \
+            --pdf-engine=${{ github.event.inputs.pdf_engine || 'calibre' }} \
+            --pdf-profile=screen \
+            --pandoc-args="${{ github.event.inputs.pandoc_args }}"
           echo "✅ 电子书生成完成"
           ls -lh Convict_Conditioning_Revised_Complete.*
       

@@ -102,8 +102,8 @@ def build_pdf_calibre(epub_file: str, output_file: str, args) -> bool:
         '--pdf-page-margin-top', str(args.margin_top),
         '--pdf-page-margin-left', str(args.margin_left),
         '--pdf-page-margin-right', str(args.margin_right),
-        '--pdf-default-font-size', '12',
-        '--pdf-mono-font-size', '10',
+        '--pdf-default-font-size', str(args.pdf_font_size),
+        '--pdf-mono-font-size', str(args.pdf_mono_font_size),
         '--pdf-serif-family', args.font_serif,
         '--pdf-sans-family', args.font_sans,
         '--pdf-mono-family', args.font_mono,
@@ -146,12 +146,19 @@ def build_pdf_pandoc(input_file: str, output_file: str, metadata: dict, args) ->
         '--pdf-engine=xelatex',
         '--toc',
         '--toc-depth=3',
-        '-V', f'geometry:margin={args.margin_top}pt', # 简单起见统一边距，���者需要更复杂转换
-        '-V', f'mainfont={args.font_sans}', # 使用无衬线字体作为主字体，或者根据需要调整
+        '-V', f'papersize={args.paper_size}',
+        '-V', (
+            'geometry:'
+            f'top={args.margin_top}pt,'
+            f'bottom={args.margin_bottom}pt,'
+            f'left={args.margin_left}pt,'
+            f'right={args.margin_right}pt'
+        ),
+        '-V', f'fontsize={args.pdf_font_size}pt',
+        '-V', f'mainfont={args.font_sans}',
         '-V', f'sansfont={args.font_sans}',
         '-V', f'monofont={args.font_mono}',
         '-V', 'CJKmainfont=' + args.font_sans, # 关键：设置CJK字体
-        '-V', f'papersize={args.paper_size}',
         f'--metadata=title:{metadata.get("title", "囚徒健身修订版")}',
         f'--metadata=author:{metadata.get("author", "Paul Wade (修订版)")}',
         f'--metadata=date:{metadata.get("date", datetime.now().strftime("%Y-%m-%d"))}',
@@ -177,17 +184,59 @@ def main():
     parser = argparse.ArgumentParser(description='囚徒健身修订版 - 电子书构建工具')
     parser.add_argument('--pdf-engine', choices=['calibre', 'pandoc'], default='calibre',
                         help='PDF生成引擎 (默认: calibre)')
-    parser.add_argument('--paper-size', default='a4', help='纸张大小 (默认: a4)')
-    parser.add_argument('--margin-top', default='72', help='上边距 (pt)')
-    parser.add_argument('--margin-bottom', default='72', help='下边距 (pt)')
-    parser.add_argument('--margin-left', default='72', help='左边距 (pt)')
-    parser.add_argument('--margin-right', default='72', help='右边距 (pt)')
+
+    # PDF 排版预设
+    parser.add_argument('--pdf-profile', choices=['screen', 'print'], default='screen',
+                        help='PDF排版预设: screen(小屏阅读) / print(打印A4)')
+
+    # 版面参数（不填则走 profile 默认）
+    parser.add_argument('--paper-size', default=None, help='纸张大小 (例如: a5/a4；不填则使用预设默认)')
+    parser.add_argument('--margin-top', type=int, default=None, help='上边距 (pt；不填则使用预设默认)')
+    parser.add_argument('--margin-bottom', type=int, default=None, help='下边距 (pt；不填则使用预设默认)')
+    parser.add_argument('--margin-left', type=int, default=None, help='左边距 (pt；不填则使用预设默认)')
+    parser.add_argument('--margin-right', type=int, default=None, help='右边距 (pt；不填则使用预设默认)')
+
+    # 字号（不填则走 profile 默认）
+    parser.add_argument('--pdf-font-size', type=int, default=None, help='PDF正文字号 (pt；不填则使用预设默认)')
+    parser.add_argument('--pdf-mono-font-size', type=int, default=None, help='PDF等宽字号 (pt；不填则使用预设默认)')
+
+    # 字体
     parser.add_argument('--font-serif', default='Noto Serif CJK SC', help='衬线字体')
     parser.add_argument('--font-sans', default='Noto Sans CJK SC', help='无衬线字体')
     parser.add_argument('--font-mono', default='Noto Sans Mono CJK SC', help='等宽字体')
-    parser.add_argument('--pandoc-args', help='Pandoc自定义参数 (例如: "--toc-depth=2 -V fontsize=12pt")')
-    
+
+    parser.add_argument('--pandoc-args', help='Pandoc自定义参数 (例如: "--toc-depth=2 -V fontsize=14pt")')
+
     args = parser.parse_args()
+
+    # 应用 PDF profile 默认值（仅在用户未显式传参时生效）
+    profile_defaults = {
+        'screen': {
+            # 小屏阅读：缩小纸张、减少白边、增大字号
+            'paper_size': 'a5',
+            'margin_top': 12,
+            'margin_bottom': 12,
+            'margin_left': 12,
+            'margin_right': 12,
+            'pdf_font_size': 14,
+            'pdf_mono_font_size': 12,
+        },
+        'print': {
+            # 打印：A4 + 较大边距 + 常规字号
+            'paper_size': 'a4',
+            'margin_top': 72,
+            'margin_bottom': 72,
+            'margin_left': 72,
+            'margin_right': 72,
+            'pdf_font_size': 12,
+            'pdf_mono_font_size': 10,
+        },
+    }
+
+    defaults = profile_defaults.get(args.pdf_profile, profile_defaults['screen'])
+    for k, v in defaults.items():
+        if getattr(args, k) is None:
+            setattr(args, k, v)
 
     # 获取项目根目录
     script_dir = Path(__file__).parent
